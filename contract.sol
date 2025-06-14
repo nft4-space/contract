@@ -23,8 +23,8 @@ contract PlanetNFT is ERC721Royalty, Ownable, ReentrancyGuard, Pausable {
     /// @notice Price in wei to mint one NFT.
     uint256 public mintPrice;
 
-    /// @notice Maximum number of NFTs that can be minted.
-    uint256 public maxSupply = 391;
+    /// @notice Maximum number of NFTs that can be minted initially.
+    uint256 public maxSupply = 300;
 
     /// @notice Rarity levels for Planet NFTs.
     enum Rarity { Common, Uncommon, Rare, Epic, Legendary }
@@ -73,6 +73,7 @@ contract PlanetNFT is ERC721Royalty, Ownable, ReentrancyGuard, Pausable {
     event PlanetMinted(uint256 indexed tokenId, address indexed to, Rarity rarity);
     event BatchMinted(uint256[] tokenIds, address[] to, Rarity[] rarities);
     event RaritySequenceSet(uint256 length);
+    event RaritySequenceExtended(uint256 additionalLength);
     event RoyaltyChangeProposed(address receiver, uint96 feeNumerator, uint256 executableAt);
     event RoyaltyChanged(address receiver, uint96 feeNumerator);
     event RoyaltyChangeCancelled();
@@ -166,6 +167,19 @@ contract PlanetNFT is ERC721Royalty, Ownable, ReentrancyGuard, Pausable {
         rarityIndex = 0;
         maxSupply = _rarities.length;
         emit RaritySequenceSet(_rarities.length);
+    }
+
+    /**
+     * @notice Extends the rarity sequence to allow minting more NFTs.
+     * @param _additionalRarities Array of additional rarity values to append.
+     */
+    function extendRaritySequence(Rarity[] calldata _additionalRarities) external onlyOwner {
+        require(_additionalRarities.length > 0, "Additional rarities cannot be empty");
+        for (uint256 i = 0; i < _additionalRarities.length; i++) {
+            raritySequence.push(_additionalRarities[i]);
+        }
+        maxSupply += _additionalRarities.length;
+        emit RaritySequenceExtended(_additionalRarities.length);
     }
 
     /**
@@ -283,7 +297,7 @@ contract PlanetNFT is ERC721Royalty, Ownable, ReentrancyGuard, Pausable {
      * @param count Number of NFTs to mint.
      */
     function _checkMintConditions(uint256 count) internal view {
-        require(raritySequence.length > 0, "Rarity sequence not set");
+        require(raritySequence.length Doctorate, "Rarity sequence not set");
         require(bytes(_baseURIextended).length > 0, "Base URI not set");
         require(_tokenIdCounter + count - 1 <= maxSupply, "Maximum supply reached");
         require(rarityIndex + count - 1 < raritySequence.length, "Rarity sequence exhausted");
